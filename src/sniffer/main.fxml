@@ -18,13 +18,13 @@
                         <MenuItem fx:id="stopSniffer" mnemonicParsing="false" text="Stop" />
                     </items>
                 </Menu>
-                <Menu mnemonicParsing="false" text="选项">
+                <Menu mnemonicParsing="false" text="Options">
                     <items>
                         <MenuItem fx:id="selectInterface" mnemonicParsing="false" text="Choose Dev" />
                         <MenuItem fx:id="filters" mnemonicParsing="false" text="Choose Protocols" />
                     </items>
                 </Menu>
-                <Menu mnemonicParsing="false" text="其它">
+                <Menu mnemonicParsing="false" text="Other">
                     <items>
                         <MenuItem fx:id="fileSave" mnemonicParsing="false" text="Store File" />
                     </items>
