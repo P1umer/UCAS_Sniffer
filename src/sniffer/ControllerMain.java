@@ -10,7 +10,9 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.ResourceBundle;
+import java.util.ListIterator;
 
+import javafx.scene.input.MouseEvent;
 import org.jnetpcap.Pcap;
 import org.jnetpcap.PcapIf;
 import org.jnetpcap.packet.PcapPacket;
@@ -51,6 +53,43 @@ import javafx.scene.text.TextAlignment;
 import javafx.stage.Stage;
 
 public class ControllerMain implements Initializable {
+
+	class ExtractPacket{
+
+		public String id = "";
+		public String srcIP = "";
+		public String dstIP = "";
+		public String srcPort = "";
+		public String dstPort = "";
+		public String protocol = "";
+		PcapPacket packet;
+
+		ExtractPacket(String _id , String _srcIP,String _dstIP,String _srcPort,String _dstPort, String _protocol,PcapPacket _packet){
+			id = _id;
+			srcIP = _srcIP;
+			dstIP = _dstIP;
+			srcPort = _srcPort;
+			dstPort = _dstPort;
+			protocol = _protocol;
+			packet = _packet;
+		}
+
+
+		public boolean filter(String _srcIP,String _dstIP,String _srcPort,String _dstPort, String _protocol){
+			// check the protocol
+
+			if(_protocol != protocol)
+				return false;
+
+			// check the IP and Port
+			if((srcIP.equals(_srcIP) && dstIP.equals(_dstIP) && srcPort.equals(_srcPort) && dstPort.equals(_dstPort))||
+					(srcIP.equals(_dstIP) && dstIP.equals(_srcIP) && srcPort.equals(_dstPort) && dstPort.equals(_srcPort))){
+
+				return true;
+			}
+			return false;
+		}
+	}
 	@FXML
 	private MenuBar menuBar;
 	@FXML
@@ -63,6 +102,8 @@ public class ControllerMain implements Initializable {
 	private MenuItem flitters;
 	@FXML
 	private ListView<PcapPacket> listPackets;// 这里是一个ListView 也就是相当于Android里的ListView,或者RecyclerView
+	@FXML
+	private ListView<PcapPacket> TracelistPackets;// 这里是一个ListView 也就是相当于Android里的ListView,或者RecyclerView
 	@FXML
 	private MenuItem stopSniffer;
 	@FXML
@@ -94,6 +135,8 @@ public class ControllerMain implements Initializable {
 	private long ipv4N = 0;
 	private long ipv6N = 0;
 	private long otherN = 0;
+
+
 	FXMLLoader fxmlLoaderInterface;
 	FXMLLoader fxmlLoaderFlitter;
 	// 两个弹窗的控制类
@@ -106,6 +149,9 @@ public class ControllerMain implements Initializable {
 	// 下面是两个比较重要的集合类
 	volatile ObservableList<PcapPacket> packets = FXCollections.observableArrayList();
 	ObservableList<PcapPacket> packetsShow = FXCollections.observableArrayList();
+
+	ObservableList<ExtractPacket> ExtractPacketInfoList = FXCollections.observableArrayList();
+
 	boolean http = true;
 	boolean icmp = true;
 	boolean arp = true;
@@ -116,6 +162,7 @@ public class ControllerMain implements Initializable {
 
 	@Override
 	public void initialize(URL location, ResourceBundle resources) {
+
 		packetsShow.add(new PcapPacket(0));
 		// 为主界面调用的两个对话框加载视图
 		fxmlLoaderInterface = new FXMLLoader(getClass().getResource("interface.fxml"));
@@ -219,20 +266,215 @@ public class ControllerMain implements Initializable {
 			} // 同步方法结束,这里是只能异步访问
 
 		});// 添加监听器结束
-			// 设置ListView的数据来源
+		// 设置ListView的数据来源
 		listPackets.setItems(packetsShow);
 		listPackets.setCellFactory((ListView<PcapPacket> item) -> new packetCell());
 		// 设置选择listview的一个item的监听器
 		listPackets.getSelectionModel().selectedItemProperty().addListener(new ChangeListener<PcapPacket>() {
 			@Override
 			public void changed(ObservableValue<? extends PcapPacket> observable, PcapPacket oldValue,
-					PcapPacket newValue) {
+								PcapPacket newValue) {
+				System.out.println("[+] Hello============");
 				if (packetsShow.indexOf(newValue) == 0) {
 					return;
 				}
 				dataDump.setText(newValue.toHexdump());
+
+//				// Trace the package flow
+//				int packetIndex = packetsShow.indexOf(newValue)-1; // the first packet is empty
+//
+//
+//				ExtractPacket thisPacket = ExtractPacketInfoList.get(packetIndex);
+//
+//				for(ListIterator<ExtractPacket> li = ExtractPacketInfoList.listIterator(); li.hasNext(); ){
+//					ExtractPacket tmp = li.next();
+//					if(tmp.id == packetIndex){
+//						thisPacket = tmp;
+//					}
+//				}
+//
+//				// check the packets are same
+//				System.out.println(thisPacket.packet == newValue);
+
+
+
+
+
+
+
+
+
+				// 1. Extract quintuple
+				String srcIP = "";
+				String dstIP = "";
+				String srcPort = "";
+				String dstPort = "";
+				String protocol = "";
+
+				Ip4 ip4 = new Ip4();
+				newValue.hasHeader(ip4);
+
+				try {
+					srcIP = FormatUtils.ip(ip4.source());
+				} catch (NullPointerException e) {
+					srcIP = "";
+				}
+
+				try {
+					dstIP = FormatUtils.ip(ip4.destination());
+				} catch (NullPointerException e) {
+					dstIP = "";
+				}
+
+
+				// Extrace the Protocol
+				if (newValue.hasHeader(new Arp())) {
+					protocol = "ARP";
+				}
+				if (newValue.hasHeader(new Ip4())) {
+					protocol = "IPv4";
+				} else if (newValue.hasHeader(new Ip6())) {
+					protocol = "IPv6";
+				}
+				if (newValue.hasHeader(new Udp())) {
+					protocol = "UDP";
+					// Handle TCP PORT
+					Udp udp_package = new Udp();
+					newValue.getHeader(udp_package);
+
+					srcPort = "" + String.valueOf(udp_package.source());
+
+					dstPort = "" + String.valueOf(udp_package.destination());
+
+				}
+				if (newValue.hasHeader(new Tcp())) {
+					protocol = "TCP";
+
+					// Handle TCP PORT
+					Tcp tcp_package = new Tcp();
+					newValue.getHeader(tcp_package);
+
+					srcPort = "" + String.valueOf(tcp_package.source());
+					dstPort = "" + String.valueOf(tcp_package.destination());
+
+				}
+				if (newValue.hasHeader(new Icmp())) {
+					protocol = "ICMP";
+				}
+
+				if (newValue.hasHeader(new Http())) {
+					protocol = "HTTP";
+				}
+//				System.out.println(srcIP+dstIP+srcPort+dstPort+protocol);
+
+
+				// 2. Filter the listPackets with quintuple
+				ObservableList<PcapPacket> TracepacketsShow = FXCollections.observableArrayList();
+
+				if(protocol == "TCP" || protocol == "UDP"){
+					for(ListIterator<ExtractPacket> li = ExtractPacketInfoList.listIterator(); li.hasNext(); ){
+						ExtractPacket tmp = li.next();
+						System.out.println("[+] Compare: "+tmp.srcIP+" "+tmp.dstIP+" " + srcPort +" " + dstPort+ " ");
+						if(tmp.filter(srcIP,dstIP,srcPort,dstPort,protocol)){
+							System.out.println("[+] Same");
+
+							// Avoid duplicates
+							if(!TracepacketsShow.contains(tmp.packet)){
+								TracepacketsShow.add(tmp.packet);
+							}
+						}
+					}
+				}
+
+				// 3. Update the ListView
+				TracelistPackets.setItems(TracepacketsShow);
+				TracelistPackets.setCellFactory((ListView<PcapPacket> item) -> new packetCell());
+//
+//				String _srcIP = "";
+//				String _dstIP = "";
+//				String _srcPort = "";
+//				String _dstPort = "";
+//				String _protocol = "";
+//
+//				ListIterator<PcapPacket> li = packetsShow.listIterator();
+
+//				while (li.hasNext()) {
+//					synchronized(this){
+//						PcapPacket p = li.next();
+//						Ip4 _ip4 = new Ip4();
+//						p.hasHeader(ip4);
+//
+//						try {
+//							_srcIP = FormatUtils.ip(_ip4.source());
+//						} catch (NullPointerException e) {
+//							_srcIP = "";
+//						}
+//
+//						try {
+//							_dstIP = FormatUtils.ip(_ip4.destination());
+//						} catch (NullPointerException e) {
+//							_dstIP = "";
+//						}
+//
+//
+//						// Extrace the Protocol
+//						if (p.hasHeader(new Arp())) {
+//							_protocol = "ARP";
+//						}
+//						if (p.hasHeader(new Ip4())) {
+//							_protocol = "IPv4";
+//						} else if (p.hasHeader(new Ip6())) {
+//							_protocol = "IPv6";
+//						}
+//						if (p.hasHeader(new Udp())) {
+//							_protocol = "UDP";
+//							// Handle TCP PORT
+//							Udp _udp_package = new Udp();
+//							p.getHeader(_udp_package);
+//
+//							_srcPort = "" + String.valueOf(_udp_package.source());
+//
+//							_dstPort = "" + String.valueOf(_udp_package.destination());
+//
+//						}
+//						if (p.hasHeader(new Tcp())) {
+//							protocol = "TCP";
+//
+//							// Handle TCP PORT
+//							Tcp _tcp_package = new Tcp();
+//							p.getHeader(_tcp_package);
+//
+//							_srcPort = "" + String.valueOf(_tcp_package.source());
+//							_dstPort = "" + String.valueOf(_tcp_package.destination());
+//
+//						}
+//						if (p.hasHeader(new Icmp())) {
+//							_protocol = "ICMP";
+//						}
+//
+//						if (p.hasHeader(new Http())) {
+//							_protocol = "HTTP";
+//						}
+//
+//						// 3. Compare this two packages
+//						// 3.1 check the protocol
+//						if(protocol != _protocol)
+//							continue;
+//
+//						// 3.2 check the IP and Port
+//						if((srcPort == _srcPort && srcIP == _srcIP && dstPort == _dstPort && dstIP == _dstIP) ||
+//								(srcPort == _dstPort && srcIP == _dstIP && dstPort == _srcPort && dstIP == _srcIP)){
+//							// same flow. Add this package to TracepacketsShow
+//							TracepacketsShow.add(p);
+//						}
+//					}
+//				}
 			}
 		});
+
+
+
+
 		// 设置两个menuitem的点击事件
 		selectInterface.setOnAction(new EventHandler<javafx.event.ActionEvent>() {
 			@Override
@@ -424,11 +666,11 @@ public class ControllerMain implements Initializable {
 					id.setWrappingWidth(30);
 					id.setTextAlignment(TextAlignment.CENTER);
 					Text srcIP = new Text("源IP地址");
+
+
 					srcIP.setWrappingWidth(95);
 					srcIP.setTextAlignment(TextAlignment.CENTER);
 					Text dstIP = new Text("目的IP地址");
-					dstIP.setWrappingWidth(95);
-					dstIP.setTextAlignment(TextAlignment.CENTER);
 
 					Text srcPort = new Text("源端口");
 					srcPort.setTextAlignment(TextAlignment.CENTER);
@@ -438,6 +680,8 @@ public class ControllerMain implements Initializable {
 					dstPort.setTextAlignment(TextAlignment.CENTER);
 					dstPort.setWrappingWidth(50);
 
+					dstIP.setWrappingWidth(95);
+					dstIP.setTextAlignment(TextAlignment.CENTER);
 					Text srcMac = new Text("源MAC地址");
 					srcMac.setWrappingWidth(110);
 					srcMac.setTextAlignment(TextAlignment.CENTER);
@@ -464,22 +708,28 @@ public class ControllerMain implements Initializable {
 						item.hasHeader(eth);
 						HBox hBox = new HBox();
 						// 获取当前的数目...
-						Text id = new Text("" + packetsShow.indexOf(item));
+						String id_str =  "" + packetsShow.indexOf(item);
+						Text id = new Text(id_str);
 						id.setWrappingWidth(30);
 						id.setTextAlignment(TextAlignment.CENTER);
 						// 获取数据包源地址
+						String srcIP_str = "";
 						Text srcIP;
 						try {
-							srcIP = new Text(FormatUtils.ip(ip4.source()));
+							srcIP_str = FormatUtils.ip(ip4.source());
+							srcIP = new Text(srcIP_str);
 						} catch (NullPointerException e) {
 							srcIP = new Text("---.---.---.---");
 						}
 						srcIP.setWrappingWidth(95);
 						srcIP.setTextAlignment(TextAlignment.CENTER);
 						// 获取数据包目的地址
+
+						String dstIP_str = "";
 						Text dstIP;
 						try {
-							dstIP = new Text(FormatUtils.ip(ip4.destination()));
+							dstIP_str = FormatUtils.ip(ip4.destination());
+							dstIP = new Text(dstIP_str);
 						} catch (NullPointerException e) {
 							dstIP = new Text("---.---.---.---");
 						}
@@ -496,7 +746,6 @@ public class ControllerMain implements Initializable {
 						dstPort.setWrappingWidth(50);
 						dstPort.setTextAlignment(TextAlignment.CENTER);
 
-
 						// 获取数据报原mac地址
 						Text srcMac = new Text(FormatUtils.mac(eth.source()));
 						srcMac.setWrappingWidth(110);
@@ -510,6 +759,9 @@ public class ControllerMain implements Initializable {
 						length.setWrappingWidth(30);
 						length.setTextAlignment(TextAlignment.CENTER);
 						String protocol = null;
+
+
+
 						// 判断协议的类型
 						if (item.hasHeader(new Arp())) {
 							protocol = "ARP";
@@ -553,6 +805,7 @@ public class ControllerMain implements Initializable {
 							dstPort.setWrappingWidth(50);
 							dstPort.setTextAlignment(TextAlignment.CENTER);
 
+
 						}
 						if (item.hasHeader(new Icmp())) {
 							protocol = "ICMP";
@@ -571,6 +824,19 @@ public class ControllerMain implements Initializable {
 						time.setTextAlignment(TextAlignment.CENTER);
 						// 将新添加的数据包生成的视图添加到ListView里去
 						hBox.getChildren().addAll(id, srcIP, dstIP, srcPort, dstPort, srcMac, dstMac, length, prot, time);
+
+//						System.out.println("[+] Input "+id_str+srcIP_str+dstIP_str+srcPort_str+dstPort_str+protocol);
+
+						ExtractPacket ep = new ExtractPacket(
+								id_str,
+								srcIP_str,
+								dstIP_str,
+								srcPort_str,
+								dstPort_str,
+								protocol,item
+						);
+						ExtractPacketInfoList.add(ep);
+
 						setGraphic(hBox);
 					}
 				}
