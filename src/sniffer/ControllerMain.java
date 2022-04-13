@@ -429,6 +429,15 @@ public class ControllerMain implements Initializable {
 					Text dstIP = new Text("目的IP地址");
 					dstIP.setWrappingWidth(95);
 					dstIP.setTextAlignment(TextAlignment.CENTER);
+
+					Text srcPort = new Text("源端口");
+					srcPort.setTextAlignment(TextAlignment.CENTER);
+					srcPort.setWrappingWidth(50);
+
+					Text dstPort = new Text("目的端口");
+					dstPort.setTextAlignment(TextAlignment.CENTER);
+					dstPort.setWrappingWidth(50);
+
 					Text srcMac = new Text("源MAC地址");
 					srcMac.setWrappingWidth(110);
 					srcMac.setTextAlignment(TextAlignment.CENTER);
@@ -444,7 +453,7 @@ public class ControllerMain implements Initializable {
 					Text time = new Text("时间");
 					time.setWrappingWidth(80);
 					time.setTextAlignment(TextAlignment.CENTER);
-					hBox.getChildren().addAll(id, srcIP, dstIP, srcMac, dstMac, length, prot, time);
+					hBox.getChildren().addAll(id, srcIP, dstIP, srcPort, dstPort, srcMac, dstMac, length, prot, time);
 					setGraphic(hBox);
 				} else {
 					if (item != null) {
@@ -476,6 +485,18 @@ public class ControllerMain implements Initializable {
 						}
 						dstIP.setWrappingWidth(95);
 						dstIP.setTextAlignment(TextAlignment.CENTER);
+
+						// Init the Port
+						String srcPort_str = "";
+						String dstPort_str = "";
+						Text srcPort = new Text("---");
+						Text dstPort = new Text("---");
+						srcPort.setWrappingWidth(50);
+						srcPort.setTextAlignment(TextAlignment.CENTER);
+						dstPort.setWrappingWidth(50);
+						dstPort.setTextAlignment(TextAlignment.CENTER);
+
+
 						// 获取数据报原mac地址
 						Text srcMac = new Text(FormatUtils.mac(eth.source()));
 						srcMac.setWrappingWidth(110);
@@ -500,9 +521,38 @@ public class ControllerMain implements Initializable {
 						}
 						if (item.hasHeader(new Udp())) {
 							protocol = "UDP";
+							// Handle TCP PORT
+							Udp udp_package = new Udp();
+							item.getHeader(udp_package);
+
+							srcPort_str = "" + String.valueOf(udp_package.source());
+							srcPort = new Text(srcPort_str);
+
+							srcPort.setWrappingWidth(50);
+							srcPort.setTextAlignment(TextAlignment.CENTER);
+
+							dstPort_str = "" + String.valueOf(udp_package.destination());
+							dstPort = new Text(dstPort_str);
+							dstPort.setWrappingWidth(50);
+							dstPort.setTextAlignment(TextAlignment.CENTER);
 						}
 						if (item.hasHeader(new Tcp())) {
 							protocol = "TCP";
+
+							// Handle TCP PORT
+							Tcp tcp_package = new Tcp();
+							item.getHeader(tcp_package);
+
+							srcPort_str = "" + String.valueOf(tcp_package.source());
+							srcPort = new Text(srcPort_str);
+							srcPort.setWrappingWidth(50);
+							srcPort.setTextAlignment(TextAlignment.CENTER);
+
+							dstPort_str = "" + String.valueOf(tcp_package.destination());
+							dstPort = new Text(dstPort_str);
+							dstPort.setWrappingWidth(50);
+							dstPort.setTextAlignment(TextAlignment.CENTER);
+
 						}
 						if (item.hasHeader(new Icmp())) {
 							protocol = "ICMP";
@@ -520,7 +570,7 @@ public class ControllerMain implements Initializable {
 						time.setWrappingWidth(80);
 						time.setTextAlignment(TextAlignment.CENTER);
 						// 将新添加的数据包生成的视图添加到ListView里去
-						hBox.getChildren().addAll(id, srcIP, dstIP, srcMac, dstMac, length, prot, time);
+						hBox.getChildren().addAll(id, srcIP, dstIP, srcPort, dstPort, srcMac, dstMac, length, prot, time);
 						setGraphic(hBox);
 					}
 				}
