@@ -99,7 +99,7 @@ public class ControllerMain implements Initializable {
 	@FXML
 	private MenuItem startSniffer;
 	@FXML
-	private MenuItem flitters;
+	private MenuItem filters;
 	@FXML
 	private ListView<PcapPacket> listPackets;// 这里是一个ListView 也就是相当于Android里的ListView,或者RecyclerView
 	@FXML
@@ -138,10 +138,10 @@ public class ControllerMain implements Initializable {
 
 
 	FXMLLoader fxmlLoaderInterface;
-	FXMLLoader fxmlLoaderFlitter;
+	FXMLLoader fxmlLoaderFilter;
 	// 两个弹窗的控制类
 	ControllerInterface CtrlInterf;
-	ControllerFlitter CtrlFlitter;
+	ControllerFilter CtrlFilter;
 	Stage stage = null;
 	StringBuilder errbuf = new StringBuilder();
 	Thread snifferThread = null;
@@ -166,7 +166,7 @@ public class ControllerMain implements Initializable {
 		packetsShow.add(new PcapPacket(0));
 		// 为主界面调用的两个对话框加载视图
 		fxmlLoaderInterface = new FXMLLoader(getClass().getResource("interface.fxml"));
-		fxmlLoaderFlitter = new FXMLLoader(getClass().getResource("flitter.fxml"));
+		fxmlLoaderFilter = new FXMLLoader(getClass().getResource("filter.fxml"));
 
 		CtrlInterf = fxmlLoaderInterface.getController();
 		// 获取视图的控制器
@@ -182,24 +182,24 @@ public class ControllerMain implements Initializable {
 		stageInterface.setScene(new Scene(interfaces));
 		stageInterface.setTitle("选择网络设备");
 		// 下面是选择筛选协议的视图的设置
-		Parent flitter = null;
+		Parent filter = null;
 		try {
-			flitter = fxmlLoaderFlitter.load();
+			filter = fxmlLoaderFilter.load();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 		// 这里是选择筛选协议类型的stage
-		final Stage stageFlitter = new Stage();
-		stageFlitter.setScene(new Scene(flitter));
-		stageFlitter.setTitle("选择筛选协议");
-		CtrlFlitter = fxmlLoaderFlitter.getController();
+		final Stage stageFilter = new Stage();
+		stageFilter.setScene(new Scene(filter));
+		stageFilter.setTitle("选择筛选协议");
+		CtrlFilter = fxmlLoaderFilter.getController();
 		// 获取视图的控制器
 		// ----------------------
 		// ----------------------
 		// ----------------------
 		// ----------------------
 		// 视图基本设置完毕，下面需要将两个子视图加载到主界面里去
-		CtrlFlitter.setMainController(this);
+		CtrlFilter.setMainController(this);
 		// lambe表达式 里面是数据改动之后自动执行的代码，也就是我们常说的 观察者模式
 		packets.addListener((ListChangeListener<PcapPacket>) c -> {
 			PcapPacket item = packets.get(packets.size() - 1);// 获取最新的数据包
@@ -482,10 +482,10 @@ public class ControllerMain implements Initializable {
 				stageInterface.show();
 			}
 		});
-		flitters.setOnAction(new EventHandler<javafx.event.ActionEvent>() {
+		filters.setOnAction(new EventHandler<javafx.event.ActionEvent>() {
 			@Override
 			public void handle(javafx.event.ActionEvent event) {
-				stageFlitter.show();
+				stageFilter.show();
 			}
 		});
 		// 设置停止和开始嗅探的点击事件
@@ -571,17 +571,17 @@ public class ControllerMain implements Initializable {
 	}
 
 	// 设置选择了过滤的行为
-	public synchronized void flitterChanged() {
+	public synchronized void filterChanged() {
 		System.out.println("update list.");
 		packetsShow.clear();
 		packetsShow.add(new PcapPacket(0));
-		http = CtrlFlitter.isHttp();
-		arp = CtrlFlitter.isArp();
-		icmp = CtrlFlitter.isIcmp();
-		tcp = CtrlFlitter.isTcp();
-		udp = CtrlFlitter.isUdp();
-		ip4 = CtrlFlitter.isIp4();
-		ip6 = CtrlFlitter.isIp6();
+		http = CtrlFilter.isHttp();
+		arp = CtrlFilter.isArp();
+		icmp = CtrlFilter.isIcmp();
+		tcp = CtrlFilter.isTcp();
+		udp = CtrlFilter.isUdp();
+		ip4 = CtrlFilter.isIp4();
+		ip6 = CtrlFilter.isIp6();
 		tcpN = 0;
 		udpN = 0;
 		totalN = 0;

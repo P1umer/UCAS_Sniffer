@@ -9,7 +9,7 @@ import javafx.fxml.Initializable;
 import javafx.scene.control.CheckBox;
 import javafx.stage.WindowEvent;
 
-public class ControllerFlitter implements Initializable {
+public class ControllerFilter implements Initializable {
 	boolean http = true;
 	boolean icmp = true;
 	boolean arp = true;
@@ -54,7 +54,7 @@ public class ControllerFlitter implements Initializable {
 		ip4 = checkIp4.isSelected();
 		ip6 = checkIp6.isSelected();
 		// choiceChanged.setValue(false);
-		ctrlMain.flitterChanged();
+		ctrlMain.filterChanged();
 		Event.fireEvent(checkArp.getScene().getWindow(),
 				new WindowEvent(checkArp.getScene().getWindow(), WindowEvent.WINDOW_CLOSE_REQUEST));
 	}

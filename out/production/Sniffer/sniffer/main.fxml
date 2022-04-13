@@ -21,7 +21,7 @@
                 <Menu mnemonicParsing="false" text="选项">
                     <items>
                         <MenuItem fx:id="selectInterface" mnemonicParsing="false" text="Choose Dev" />
-                        <MenuItem fx:id="flitters" mnemonicParsing="false" text="Choose Protocols" />
+                        <MenuItem fx:id="filters" mnemonicParsing="false" text="Choose Protocols" />
                     </items>
                 </Menu>
                 <Menu mnemonicParsing="false" text="其它">
